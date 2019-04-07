@@ -19,7 +19,7 @@ El primer objeto siempre se colocará en el primer envase (x1=1).
 
 Normas para la presentaci ́on de la pr ́actica
 
-5.  Se ejecutar ́a el programa con al menostres juegos de datos distintos, con datos lo mas volu-minosos posibles.
+5.  Se ejecutar ́a el programa con al menos tres juegos de datos distintos, con datos lo mas volu-minosos posibles.
 
 6.  Para podar, se utilizar ́an 
     al menos dos estimaciones optimistas y dos pesimistas (si son aplicables):
@@ -47,13 +47,18 @@ Normas para la presentaci ́on de la pr ́actica
 #include <iterator>     //ITERADOR
 #include <queue>        //COLA DE PRIORIDAD
 #include <math.h>       //CEIL
+#include <fstream>      //LECTURA DE ENTRADA
+#include <string>
 
 using std::vector;
 using std::priority_queue;
 using std::iterator;
 using std::min;
 using std::cout;
+using std::cin;
 using std::endl;
+using std::ifstream;
+using std::string;
 
 using t_vect = vector<int>;
 
@@ -67,7 +72,7 @@ struct Nodo {
 struct Comparacion_Nodos {
     bool operator()(const Nodo* l, const Nodo* r) const {
         if (l->n_envases_optimista == r->n_envases_optimista) 
-            return l->n_envases_real < r->n_envases_real;
+            return l->n_envases_real > r->n_envases_real;
         else         
             return l->n_envases_optimista > r->n_envases_optimista;
     } 
@@ -102,11 +107,18 @@ int empaq_optimista_sencillo(const int E, const t_vect &vol) {
     return ceil(retval);
 }
 
-int empaq_optimista_realista(const int E, Nodo* nod, const t_vect &vol) {
+int empaq_optimista_realista(const int E, Nodo* n, const t_vect &vol) {
+    Nodo *nod = new Nodo; 
+    nod->k = n->k;
+    nod->n_envases_optimista = n->n_envases_optimista;
+    nod->n_envases_real = n->n_envases_real;
+    nod->sol = n->sol;
+    nod->v_envases = n->v_envases;
+
     int abiertos = nod->n_envases_real;
     // para cada objeto que queda por envasar
     for (int i = nod->k; i < nod->sol.size(); i++) {
-        if (abiertos) {    // si no hay envases abiertos
+        if (!abiertos) {    // si no hay envases abiertos
             abiertos++;    // se abre un envase
             nod->sol[i] = 0;            // se mete al primero
         } else {                                        // si hay envases abiertos
@@ -140,7 +152,8 @@ Nodo* envase(const int E, const t_vect &vol) {
     y->n_envases_real = 0;
     y->sol = t_vect(vol.size(), -1);
     y->v_envases = t_vect(vol.size(), 0);
-    y->n_envases_optimista = empaq_optimista_sencillo(E, vol);
+    y->n_envases_optimista = empaq_optimista_realista(E, y, vol);
+    // y->n_envases_optimista = empaq_optimista_sencillo(E, vol);
     
     pq.push(y);
     int n_envases_mejor = empaq_pesimista_sencillo(y);
@@ -159,7 +172,8 @@ Nodo* envase(const int E, const t_vect &vol) {
                 x->v_envases = y->v_envases;
                 x->v_envases[i] += vol[y->k];
                 x->n_envases_real = y->n_envases_real;
-                x->n_envases_optimista = y->n_envases_optimista;
+                x->n_envases_optimista = empaq_optimista_realista(E, y, vol);
+                // x->n_envases_optimista = y->n_envases_optimista;
 
                 if(i == y->n_envases_real)
                     x->n_envases_real++;
@@ -181,6 +195,7 @@ Nodo* envase(const int E, const t_vect &vol) {
                 }
             }
         }
+        delete y;
     }
     return sol_mejor;
 }
@@ -195,17 +210,55 @@ void printsol(const int E, Nodo* &nod, const t_vect &vol) {
     printv(nod->v_envases);
 }
 
-int main() {
-    // n = 8 volumenes
-    t_vect volumen = t_vect(24);
-    const int E = 10;
-    // generación de datos
-    for (int i = 0; i < volumen.size(); i++) 
-        volumen[i] = 1 + (rand() % 10);
+// lee fichero input_n=16.txt, input_n=32.txt, o input_n=64.txt de la carpeta inputs
+t_vect readinputfile() {
+    t_vect v;
+    ifstream f;
+    int n = -1;
+    cout << "1: n = 16. 2: n = 32. 3: n = 64." << endl << "elige un fichero (del 1 al 3): ";
+    string path;
+    while(n < 1 || n > 3) {
+        cin >> n;
+        
+        if(n == 1) {
+            path = "inputs/input_n=16.txt";
+        } else if (n == 2) {
+            path = "inputs/input_n=32.txt";
+        } else if (n == 3) {
+            path = "inputs/input_n=64.txt";
+        } else {
+            cout << "error. elige un numero del 1 al 3: ";
+        }
+    }
+    f.open(path);
+    if(f.is_open())
+        cout << "cargando fichero " << path << "." << endl;
+    else { 
+        cout << "error en la lectura del fichero " << path << "." << endl 
+            << "devolviendo vector vacio..." << endl;
+        return v;
+    }
     
-    Nodo* solnod = envase(E, volumen);
+    while(!f.eof()) {
+        f >> n;
+        v.push_back(n);
+    }
+    
+    f.close();
+    cout << endl;
 
-    printsol(E, solnod, volumen);
+    return v;
+}
+
+int main() {
+    
+    const int E = 10;
+    
+    t_vect vol = readinputfile();
+    
+    Nodo* solnod = envase(E, vol);
+
+    printsol(E, solnod, vol);
    
     return 0;
 }

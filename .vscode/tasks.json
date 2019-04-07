@@ -6,7 +6,8 @@
         {
             "label": "compile",
             "type": "shell",
-            "command": "g++ -g -Wall -std=c++11 *.cpp -o a.out"
+            "command": "g++ -g -Wall -std=c++11 *.cpp -o main",
+        
         }
     ]
 }
