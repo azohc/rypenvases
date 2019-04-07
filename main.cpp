@@ -108,6 +108,7 @@ int empaq_optimista_sencillo(const int E, const t_vect &vol) {
 }
 
 int empaq_optimista_realista(const int E, Nodo* n, const t_vect &vol) {
+
     Nodo *nod = new Nodo; 
     nod->k = n->k;
     nod->n_envases_optimista = n->n_envases_optimista;
@@ -137,12 +138,12 @@ int empaq_optimista_realista(const int E, Nodo* n, const t_vect &vol) {
             }
         }
     }
-
+    delete nod;
     return abiertos;
 }
 
 
-Nodo* envase(const int E, const t_vect &vol) {
+Nodo* envase(const int E, const t_vect &vol, int &explorados) {
     Nodo* x;
     Nodo* y = new Nodo;    
     Nodo* sol_mejor = new Nodo;
@@ -152,9 +153,10 @@ Nodo* envase(const int E, const t_vect &vol) {
     y->n_envases_real = 0;
     y->sol = t_vect(vol.size(), -1);
     y->v_envases = t_vect(vol.size(), 0);
-    y->n_envases_optimista = empaq_optimista_realista(E, y, vol);
-    // y->n_envases_optimista = empaq_optimista_sencillo(E, vol);
+    // y->n_envases_optimista = empaq_optimista_realista(E, y, vol);
+    y->n_envases_optimista = empaq_optimista_sencillo(E, vol);
     
+    explorados++;
     pq.push(y);
     int n_envases_mejor = empaq_pesimista_sencillo(y);
 
@@ -172,9 +174,9 @@ Nodo* envase(const int E, const t_vect &vol) {
                 x->v_envases = y->v_envases;
                 x->v_envases[i] += vol[y->k];
                 x->n_envases_real = y->n_envases_real;
-                x->n_envases_optimista = empaq_optimista_realista(E, y, vol);
-                // x->n_envases_optimista = y->n_envases_optimista;
-
+                // x->n_envases_optimista = empaq_optimista_realista(E, y, vol);
+                x->n_envases_optimista = y->n_envases_optimista;
+                explorados++;
                 if(i == y->n_envases_real)
                     x->n_envases_real++;
             } else {
@@ -253,12 +255,13 @@ t_vect readinputfile() {
 int main() {
     
     const int E = 10;
-    
     t_vect vol = readinputfile();
-    
-    Nodo* solnod = envase(E, vol);
+    int explorados = 0;
+
+    Nodo* solnod = envase(E, vol, explorados);
 
     printsol(E, solnod, vol);
+    cout << "nodos explorados: " << explorados << endl;
    
     return 0;
 }

@@ -1,3 +1,5 @@
 a.out
 .vscode/*
 !.vscode/*.json
+main.exe
+main
