@@ -196,7 +196,7 @@ Nodo* envase(const int E, const t_vect &vol, int &explf, int &explp) {
         pq.pop();
 
         // para los hijos del nodo y, el objeto se puede meter en el envase i
-        for (int i = 0; !encontrada && i < y->n_envases_real + 1; i++) {  // y->n_envases_real + 1 >= i >= 0
+        for (int i = 0; !encontrada && i <= y->n_envases_real; i++) {  // y->n_envases_real + 1 >= i >= 0
             if (vol[y->k] + y->v_envases[i] <= E) {          // si cabe en el envase abierto i
                 x = new Nodo;
                 x->k = y->k + 1;
@@ -224,7 +224,7 @@ Nodo* envase(const int E, const t_vect &vol, int &explf, int &explp) {
                     explp++;
                     pq.push(x);
                     int pesimista = empaq_pesimista_voraz(E, y, vol);
-                    (n_envases_mejor > pesimista) ? n_envases_mejor = pesimista : n_envases_mejor = n_envases_mejor;
+                    n_envases_mejor = min(pesimista, n_envases_mejor);
                 } else {                                        
                     delete x;   
                 }
