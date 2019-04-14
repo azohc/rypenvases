@@ -21,15 +21,15 @@ Normas para la presentaci ́on de la pr ́actica
 
 5.  Se ejecutar ́a el programa con al menos tres juegos de datos distintos, con datos lo mas volu-minosos posibles.
 
-6.  Para podar, se utilizar ́an 
+6.  Para podar, se utilizaran 
     al menos dos estimaciones optimistas y dos pesimistas (si son aplicables):
-        una ing ́enua y poco costosa, 
-        y otra m ́as ajustada y posiblemente m ́as costosa.
+        una ingenua y poco costosa, 
+        y otra mas ajustada y posiblemente mas costosa.
 
-7.  Se  imprimiran  el  numero  de nodos  explorados cuando  no  se  utiliza mas  poda  que  
+7.  Se  imprimiran  el  numero  de nodos explorados cuando no se utiliza mas poda que  
     la  de factibilidad y los explorados cuando se utiliza cada una de las dos podas.
 
-8.  Tambi ́en se dara el tiempo total y el tiempo medio por nodo explorado en cada uno de los tres casos.
+8.  Tambien se dara el tiempo total y el tiempo medio por nodo explorado en cada uno de los tres casos.
 
 9.  Se entregaran las fuentes del programa con suficientes comentarios, los ficheros de prueba, los resultados obtenidos, 
     y una brevememoria(maximo 3 paginas) con las explicaciones adicionalesque se consideren necesarias y las conclusiones personales obtenidas.
@@ -53,7 +53,7 @@ Normas para la presentaci ́on de la pr ́actica
 using std::vector;
 using std::priority_queue;
 using std::iterator;
-using std::min;
+using std::max;
 using std::cout;
 using std::cin;
 using std::endl;
@@ -61,11 +61,13 @@ using std::ifstream;
 using std::string;
 
 using t_vect = vector<int>;
+int N;  // Numero de objetos a envasar
 
 struct Nodo {   // estructura Nodo
     int k;                      // profundidad en el arbol
     int n_envases_real;         // la cantidad de envases utilizados en el nodo
     int n_envases_optimista;    // cota inferior de n_envases_real para la configuracion de envases
+    int capacidad_restante;     // capacidad restante de los envases utilizados: para un calculo menos costoso de la cota inferior
     t_vect *v_envases;          // volumenes asociados a los envases [0, n)
     t_vect *sol;                // envases asociados a los objetos [0, n)
 }; 
@@ -103,43 +105,29 @@ Nodo* copiaNodo(Nodo* &n) {
     nod->k = n->k;
     nod->n_envases_real = n->n_envases_real;
     nod->n_envases_optimista = n->n_envases_optimista;
+    nod->capacidad_restante = n->capacidad_restante;
 
-    nod->v_envases = new t_vect(n->v_envases->size());
+    nod->v_envases = new t_vect(N);
     *nod->v_envases = *n->v_envases;
-    nod->sol = new t_vect(n->sol->size());
+    nod->sol = new t_vect(N);
     *nod->sol = *n->sol;
     return nod;
 }
 
+// cota superior sencilla: cada objeto es emparejado con un envase 
 int empaq_pesimista_sencillo(Nodo* &nod) {
-    return nod->sol->size();
+    return N;
 }
 
-int cota_pesimista_two() {
-    int retval = 0;
-  
-    return retval;
-}
-
-int empaq_optimista_sencillo(const int E, const t_vect *vol) {
-    float retval = 0.0;
-    
-    for (int i = 0; i < vol->size(); i++)
-        retval += vol->at(i);
-    retval = retval/E;
-
-    return ceil(retval);
-}
-
-
-// cota inferior mas elaborada: calcula el numero de envases de forma voraz
-int empaq_optimista_realista(const int E, Nodo* n, const t_vect *vol) {
+// cota superior mas elaborada: calcula el numero de envases de forma voraz
+// para los objetos restantes, cada objeto se coloca en el primer envase que tenga sitio para el
+int empaq_pesimista_voraz(const int E, Nodo* n, const t_vect *vol) {
     Nodo *nod = copiaNodo(n);   // nod = copia del nodo: para poder manipularlo
 
     int abiertos = nod->n_envases_real;
 
     // para cada objeto que queda por envasar
-    for (int i = nod->k; i < nod->sol->size(); i++) {
+    for (int i = nod->k; i < N; i++) {
         if (!abiertos) {    // si no hay envases abiertos
             abiertos++;                 // se abre un envase
             nod->sol->at(i) = 0;            // se mete al envase vacio
@@ -164,8 +152,26 @@ int empaq_optimista_realista(const int E, Nodo* n, const t_vect *vol) {
     return abiertos;
 }
 
+// cota inferior optima: volumen total de los objetos dividido por la capacidad de un envase
+int empaq_optimista_sencillo(const int E, const t_vect *vol) {
+    float retval = 0.0;
+    
+    for (int i = 0; i < N; i++)
+        retval += vol->at(i);
+    retval = retval/E;
 
-Nodo* envase(const int E, const t_vect *vol, int &explorados) {
+    return ceil(retval);
+}
+
+// cota inferior mas realista: tiene en cuenta el volumen restante 
+int empaq_optimista_realista(const int E, Nodo* n, const t_vect *vol, const t_vect *v_pendiente) {
+    float d = 0.0;
+    d += (v_pendiente->at(n->k) - n->capacidad_restante) / E;
+    return n->n_envases_real + (0 >= ceil(d)) ? 0 : ceil(d);
+}
+
+
+Nodo* envase(const int E, const t_vect *vol, int &explf, int &explp, const t_vect *v_pendiente) {
     // declaracion cola prioridad y nodos
     Nodo* x;
     Nodo* y = new Nodo;    
@@ -174,42 +180,52 @@ Nodo* envase(const int E, const t_vect *vol, int &explorados) {
 
     y->k = 0;
     y->n_envases_real = 0;
-    y->sol = new t_vect(vol->size(), -1);
-    y->v_envases = new t_vect(vol->size(), 0);
-    y->n_envases_optimista = empaq_optimista_realista(E, y, vol);
+    y->capacidad_restante = 0;
+    y->sol = new t_vect(N, -1);
+    y->v_envases = new t_vect(N, 0);
+    y->n_envases_optimista = empaq_optimista_realista(E, y, vol, v_pendiente);
     // y->n_envases_optimista = empaq_optimista_sencillo(E, vol);
     
-    explorados++;
+    explf++;
     pq.push(y);
-    int n_envases_mejor = empaq_pesimista_sencillo(y);
+    int n_envases_mejor = empaq_pesimista_voraz(E, y, vol);
 
     while (!pq.empty() && pq.top()->n_envases_optimista < n_envases_mejor) {
         y = pq.top();
         pq.pop();
 
         // para los hijos del nodo y, el objeto se puede meter en el envase i
-        for (int i = 0; i < y->n_envases_real + 1; i++) {  // y->n_envases_real + 1 >= i >= 0
+        for (int i = 0; i <= y->n_envases_real; i++) {  //  0 <= i <= n_envases_real
             if (vol->at(y->k) + y->v_envases->at(i) <= E) {          // si cabe en el envase abierto i
+               
                 x = copiaNodo(y);
+                explf++;
+
+                if(i == y->n_envases_real) {        // si i == n_envases_real, significa que se esta usando un envase nuevo
+                    x->n_envases_real++;        //incrementamos los envases abiertos
+                    x->capacidad_restante += E; //sumamos a la capacidad restante de los envases abiertos
+                }
+
                 x->k++;
+                x->capacidad_restante -= vol->at(y->k); //restamos el volumen del objeto de la capacidad restante de los envases abiertos
                 x->sol->at(y->k) = i;
                 x->v_envases->at(i) += vol->at(y->k);
-                x->n_envases_optimista = empaq_optimista_realista(E, y, vol);
-                explorados++;
-                if(i == y->n_envases_real)
-                    x->n_envases_real++;
+                x->n_envases_optimista = empaq_optimista_realista(E, y, vol, v_pendiente);
+                // x->n_envases_optimista = empaq_optimista_sencillo(E, vol);
+
             } else {
                 continue;
             }
-            if (x->k == x->sol->size()){     // es-solucion
+            if (x->k == N){     // es-solucion
                 if(x->n_envases_real < n_envases_mejor) {
                     n_envases_mejor = x->n_envases_real;
                     sol_mejor = x;
                 }
             } else {                        // !es-solucion
                 if(x->n_envases_optimista < n_envases_mejor) {  // merece la pena expandirlo
+                    explp++;
                     pq.push(x);
-                    int pesimista = empaq_pesimista_sencillo(x);
+                    int pesimista = empaq_pesimista_voraz(E, x, vol);
                     (n_envases_mejor > pesimista) ? n_envases_mejor = pesimista : n_envases_mejor = n_envases_mejor;
                 } else {                                        
                     borraNodo(x);   
@@ -222,7 +238,7 @@ Nodo* envase(const int E, const t_vect *vol, int &explorados) {
 }
 
 void printsol(const int E, Nodo* &nod, const t_vect *vol) {
-    cout << "distribucion de " << vol->size() << " objetos en envases de capacidad " << E << endl;
+    cout << "distribucion de " << N << " objetos en envases de capacidad " << E << endl;
     cout << "volumenes:\t\t";
     printv(vol);
     cout << nod->n_envases_real << " envases utilizados:\t";
@@ -233,7 +249,7 @@ void printsol(const int E, Nodo* &nod, const t_vect *vol) {
 
 // lee fichero input_n=16.txt, input_n=32.txt, o input_n=64.txt de la carpeta /inputs
 t_vect* readinputfile() {
-    t_vect *v;
+    t_vect *v = new t_vect();
     ifstream f;
     int n = -1;
     cout << "1: n = 16. 2: n = 32. 3: n = 64." << endl << "elige un fichero (del 1 al 3): ";
@@ -243,13 +259,13 @@ t_vect* readinputfile() {
         
         if(n == 1) {
             path = "inputs/input_n=16.txt";
-            v = new t_vect();
+            N = 16;
         } else if (n == 2) {
             path = "inputs/input_n=32.txt";
-            v = new t_vect();
+            N = 32;
         } else if (n == 3) {
             path = "inputs/input_n=64.txt";
-            v = new t_vect();
+            N = 64;
         } else {
             cout << "error. elige un numero del 1 al 3: ";
         }
@@ -274,15 +290,25 @@ t_vect* readinputfile() {
     return v;
 }
 
+
+
 int main() {    
     const int E = 10;
     t_vect *vol = readinputfile();
-    int explorados = 0;
+    t_vect *v_pendiente = new t_vect(N);
+    int aux = 0;
+    for(int i = N - 1; i != -1; i--) {
+        v_pendiente->at(i) = vol->at(i) + aux;
+        aux += vol->at(i);
+    }
 
-    Nodo* solnod = envase(E, vol, explorados);
+    int explfactibles = 0, explpodados = 0;
+
+    Nodo* solnod = envase(E, vol, explfactibles, explpodados, v_pendiente);
 
     printsol(E, solnod, vol);
-    cout << "nodos explorados: " << explorados << endl;
+    cout << "nodos explorados (factibles): " << explfactibles << endl;
+    cout << "nodos explorados (no podados): " << explpodados << endl;
    
     return 0;
 }
