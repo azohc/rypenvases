@@ -43,12 +43,12 @@ Normas para la presentaci ́on de la pr ́actica
 
 
 #include <iostream>     //IO
-#include <vector>       //LISTAS
+#include <string>       //IO
+#include <fstream>      //ENTRADA FICHERO
 #include <iterator>     //ITERADOR
 #include <queue>        //COLA DE PRIORIDAD
+#include <vector>       //ESTRUCTURA PARA LA COLA
 #include <math.h>       //CEIL
-#include <fstream>      //LECTURA DE ENTRADA
-#include <string>
 
 using std::vector;
 using std::priority_queue;
@@ -62,22 +62,23 @@ using std::string;
 
 using t_vect = vector<int>;
 
-struct Nodo { 
-    int k;
-    int n_envases_real;
-    int n_envases_optimista;
-    t_vect v_envases;
-    t_vect sol;
+struct Nodo {   // estructura Nodo
+    int k;                      // profundidad en el arbol
+    int n_envases_real;         // la cantidad de envases utilizados en el nodo
+    int n_envases_optimista;    // cota inferior de n_envases_real para la configuracion de envases
+    t_vect v_envases;          // volumenes asociados a los envases [0, n)
+    t_vect sol;                // envases asociados a los objetos [0, n)
 }; 
-struct Comparacion_Nodos {
-    bool operator()(const Nodo* l, const Nodo* r) const {
-        if (l->n_envases_optimista == r->n_envases_optimista) 
-            return l->n_envases_real > r->n_envases_real;
+struct Comparacion_Nodos {      
+    bool operator()(const Nodo* l, const Nodo* r) const {   // comparacion en funcion del n_envases_optimista
+        if (l->n_envases_optimista == r->n_envases_optimista)       // si hay dos nodos con la misma cota inferior,
+            return l->n_envases_real > r->n_envases_real;           // se expande el que tenga menor n_envases_real
         else         
-            return l->n_envases_optimista > r->n_envases_optimista;
+            return l->n_envases_optimista > r->n_envases_optimista; // expandiremos antes el que tenga menor cota inferior
     } 
 };
 
+// cola de prioridad: ordena punteros a nodos en un vector con la comparacion definida
 using t_prioq = priority_queue<Nodo*, vector<Nodo*>, Comparacion_Nodos>;
 
 void printv(const t_vect &vol) {
@@ -107,9 +108,10 @@ int empaq_optimista_sencillo(const int E, const t_vect &vol) {
     return ceil(retval);
 }
 
+// cota inferior mas elaborada: calcula el numero de envases de forma voraz
 int empaq_optimista_realista(const int E, Nodo* n, const t_vect &vol) {
 
-    Nodo *nod = new Nodo; 
+    Nodo *nod = new Nodo; // nod = copia del nodo: para poder manipularlo
     nod->k = n->k;
     nod->n_envases_optimista = n->n_envases_optimista;
     nod->n_envases_real = n->n_envases_real;
@@ -126,7 +128,7 @@ int empaq_optimista_realista(const int E, Nodo* n, const t_vect &vol) {
             int j;
             for (j = 0; j < abiertos; j++) {    // miramos si cabe en alguno
                 if (vol[i] + nod->v_envases[j] <= E) {          // si cabe en un envase abierto
-                    nod->sol[i] = j;                        // se mete mete en el que quepa
+                    nod->sol[i] = j;                        // se mete mete en primero que tenga sitio
                     nod->v_envases[j] += vol[i];
                     break;
                 }
@@ -138,7 +140,7 @@ int empaq_optimista_realista(const int E, Nodo* n, const t_vect &vol) {
             }
         }
     }
-    delete nod;
+    delete nod;       // borrar el nodo copiado
     return abiertos;
 }
 
