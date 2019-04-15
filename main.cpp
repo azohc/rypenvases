@@ -123,8 +123,8 @@ int empaq_pesimista_voraz(const int E, Nodo* n, const t_vect vol) {
     return abiertos;
 }
 
-// cota inferior optima: volumen total de los objetos dividido por la capacidad de un envase
-int empaq_optimista_optimo(const int E, const t_vect &vol) {
+// cota inferior sencilla: volumen total de los objetos dividido por la capacidad de un envase
+int empaq_optimista_sencillo(const int E, const t_vect &vol) {
     float retval = 0.0;
     
     for (int i = 0; i < N; i++)
@@ -134,40 +134,10 @@ int empaq_optimista_optimo(const int E, const t_vect &vol) {
     return ceil(retval);
 }
 
-// cota inferior mas elaborada: calcula el numero de envases de forma voraz
+// cota inferior mas elaborada: calcula el numero de envases contemplando los objetos restantes
+// y los envases utilizados. considera que los objetos son fraccionables
 int empaq_optimista_realista(const int E, Nodo* n, const t_vect &vol) {
-
-    Nodo *nod = new Nodo; // nod = copia del nodo: para poder manipularlo
-    nod->k = n->k;
-    nod->n_envases_optimista = n->n_envases_optimista;
-    nod->n_envases_real = n->n_envases_real;
-    nod->sol = n->sol;
-    nod->v_envases = n->v_envases;
-
-    int abiertos = nod->n_envases_real;
-    // para cada objeto que queda por envasar
-    for (int i = nod->k; i < N; i++) {
-        if (!abiertos) {    // si no hay envases abiertos
-            abiertos++;    // se abre un envase
-            nod->sol[i] = 0;            // se mete al primero
-        } else {                                        // si hay envases abiertos
-            int j;
-            for (j = 0; j < abiertos; j++) {    // miramos si cabe en alguno
-                if (vol[i] + nod->v_envases[j] <= E) {          // si cabe en un envase abierto
-                    nod->sol[i] = j;                        // se mete mete en primero que tenga sitio
-                    nod->v_envases[j] += vol[i];
-                    break;
-                }
-            }
-            if (j == abiertos) {   // si no cupo en un envase abierto
-                nod->sol[i] = j;                // se mete a uno nuevo
-                nod->v_envases[j] = vol[i];
-                abiertos++;
-            }
-        }
-    }
-    delete nod;       // borrar el nodo copiado
-    return abiertos;
+return 0;
 }
 
 
@@ -182,10 +152,10 @@ Nodo* envase(const int E, const t_vect &vol, int &explf, int &explp) {
     y->sol = t_vect(N, -1);
     y->v_envases = t_vect(N, 0);
     // y->n_envases_optimista = empaq_optimista_realista(E, y, vol);
-    y->n_envases_optimista = empaq_optimista_optimo(E, vol);
+    y->n_envases_optimista = empaq_optimista_sencillo(E, vol);
     
     bool encontrada = false;
-    int optimo = empaq_optimista_optimo(E, vol);
+    int optimo = empaq_optimista_sencillo(E, vol);
 
     explf++;
     pq.push(y);
@@ -226,7 +196,7 @@ Nodo* envase(const int E, const t_vect &vol, int &explf, int &explp) {
                     int pesimista = empaq_pesimista_voraz(E, y, vol);
                     n_envases_mejor = min(pesimista, n_envases_mejor);
                 } else {                                        
-                    delete x;   
+                    delete x;
                 }
             }
         }
