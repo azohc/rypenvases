@@ -16,15 +16,14 @@ El primer objeto siempre se colocará en el primer envase (x1=1).
 ---------------
 
 
-
-Normas para la presentaci ́on de la pr ́actica
+Normas para la presentacion de la practica
 
 5.  Se ejecutar ́a el programa con al menos tres juegos de datos distintos, con datos lo mas volu-minosos posibles.
 
 6.  Para podar, se utilizar ́an 
     al menos dos estimaciones optimistas y dos pesimistas (si son aplicables):
-        una ing ́enua y poco costosa, 
-        y otra m ́as ajustada y posiblemente m ́as costosa.
+        una ingenua y poco costosa, 
+        y otra mas ajustada y posiblemente mas costosa.
 
 7.  Se  imprimir ́an  el  n ́umero  de nodos  explorados cuando  no  se  utiliza m ́as  poda  que  
     la  de factibilidad y los explorados cuando se utiliza cada una de las dos podas.
