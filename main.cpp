@@ -18,25 +18,25 @@ El primer objeto siempre se colocará en el primer envase (x1=1).
 
 Normas para la presentacion de la practica
 
-5.  Se ejecutar ́a el programa con al menos tres juegos de datos distintos, con datos lo mas volu-minosos posibles.
+5.  Se ejecutara el programa con al menos tres juegos de datos distintos, con datos lo mas voluminosos posibles.
 
-6.  Para podar, se utilizar ́an 
+6.  Para podar, se utilizaran 
     al menos dos estimaciones optimistas y dos pesimistas (si son aplicables):
         una ingenua y poco costosa, 
         y otra mas ajustada y posiblemente mas costosa.
 
-7.  Se  imprimir ́an  el  n ́umero  de nodos  explorados cuando  no  se  utiliza m ́as  poda  que  
+7.  Se  imprimiran  el  numero  de nodos  explorados cuando  no  se  utiliza mas  poda  que  
     la  de factibilidad y los explorados cuando se utiliza cada una de las dos podas.
 
-8.  Tambi ́en se dar ́a el tiempo total y el tiempo medio por nodo explorado en cada uno de los tres casos.
+8.  Tambien se dara el tiempo total y el tiempo medio por nodo explorado en cada uno de los tres casos.
 
-9.  Se entregar ́an las fuentes del programa con suficientes comentarios, los ficheros de prueba, los resultados obtenidos, 
-    y una brevememoria(m ́aximo 3 p ́aginas) con las explicaciones adicionalesque se consideren necesarias y las conclusiones personales obtenidas.
+9.  Se entregaran las fuentes del programa con suficientes comentarios, los ficheros de prueba, los resultados obtenidos, 
+    y una breve memoria (maximo 3 paginas) con las explicaciones adicionales que se consideren necesarias y las conclusiones personales obtenidas.
 
-10.  La entrega se har ́a subiendo un fichero comprimido al campus virtuala lo sumo el mi ́ercoles15 de mayo. 
-    Las pr ́acticas no subidas en esa fecha se dar ́an por no entregadas.
+10.  La entrega se hara subiendo un fichero comprimido al campus virtual a lo sumo el miercoles 15 de mayo. 
+    Las practicas no subidas en esa fecha se daran por no entregadas.
 
-11.  Se  podr ́an  fijar  fechas  durante  mayo  o  junio  para  hacer  una  demostraci ́on  ante  el  profesor  yresponder a sus preguntas.
+11.  Se  podran  fijar  fechas  durante  mayo  o  junio  para  hacer  una  demostracion  ante  el  profesor  y responder a sus preguntas.
 
 */
 
@@ -48,6 +48,7 @@ Normas para la presentacion de la practica
 #include <queue>        //COLA DE PRIORIDAD
 #include <vector>       //ESTRUCTURA PARA LA COLA
 #include <math.h>       //CEIL
+#include <sys/time.h>   //MEDIDAS DE TIEMPO
 
 using std::vector;
 using std::priority_queue;
@@ -59,9 +60,18 @@ using std::endl;
 using std::ifstream;
 using std::string;
 
+// Para medir el tiempo 
+typedef unsigned long long utime_t;
+static utime_t get_time ()      
+{
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    return  now.tv_usec + (utime_t)now.tv_sec * 1000000;
+}
+
+
 using t_vect = vector<int>;
 int N;  // numero de objetos a envasar
-
 
 struct Nodo {   // estructura Nodo
     int k;                      // profundidad en el arbol
@@ -90,13 +100,15 @@ void printv(const t_vect &vol) {
 }
 
 // cota superior sencilla: devuelve N, asociando cada objeto a un envase
-int empaq_pesimista_sencillo(Nodo* &nod) {
+int empaq_pesimista_sencilla(Nodo* &nod) {
     return N;
 }
 
-// cota superior mas elaborada: calcula los envases necesarios de forma voraz
-// para los objetos restantes, cada uno se coloca en el primer envase que tenga sitio para el
-int empaq_pesimista_voraz(const int E, Nodo* n, const t_vect vol) {
+/* cota superior mas elaborada: 
+calcula los envases necesarios de forma voraz para los objetos restantes
+cada objeto se coloca en el primer envase que tenga sitio para el
+*/
+int empaq_pesimista_elaborada(const int E, Nodo* n, const t_vect vol) {
     t_vect v_envases_aux = n->v_envases;
 
     int abiertos = n->n_envases_real;
@@ -111,7 +123,7 @@ int empaq_pesimista_voraz(const int E, Nodo* n, const t_vect vol) {
                 if (vol[i] + v_envases_aux[j] <= E) {   // si cabe en un envase abierto
                     v_envases_aux[j] += vol[i];             // se mete mete en primero que tenga sitio
                     break;
-}
+                }
             }
             if (j == abiertos) {   // si no cupo en un envase abierto
                 v_envases_aux[j] = vol[i]; // se mete a uno nuevo
@@ -122,8 +134,10 @@ int empaq_pesimista_voraz(const int E, Nodo* n, const t_vect vol) {
     return abiertos;
 }
 
-// cota inferior sencilla: volumen total de los objetos dividido por la capacidad de un envase
-int empaq_optimista_sencillo(const int E, const t_vect &vol) {
+/* cota inferior sencilla 
+da lugar a la solución óptima: volumen total de los objetos dividido por la capacidad de un envase
+*/
+int empaq_optimista_sencilla(const int E, const t_vect &vol) {
     float retval = 0.0;
     
     for (int i = 0; i < N; i++)
@@ -134,13 +148,13 @@ int empaq_optimista_sencillo(const int E, const t_vect &vol) {
 }
 
 // cota inferior mas elaborada: calcula el numero de envases contemplando los objetos restantes
-// y los envases utilizados. considera que los objetos son fraccionables
-int empaq_optimista_realista(const int E, Nodo* n, const t_vect &vol) {
-return 0;
+// y los envases utilizados. considera que los objetos son NO fraccionables
+int empaq_optimista_elaborada(const int E, Nodo* n, const t_vect &vol) {
+    return 0;
 }
 
 
-Nodo* envase(const int E, const t_vect &vol, int &explf, int &explp) {
+Nodo* envase(const int E, const t_vect &vol, int &exp_factibles, int &explp, double &t) {
     Nodo* x;
     Nodo* y = new Nodo;    
     Nodo* sol_mejor = new Nodo;
@@ -150,23 +164,29 @@ Nodo* envase(const int E, const t_vect &vol, int &explf, int &explp) {
     y->n_envases_real = 0;
     y->sol = t_vect(N, -1);
     y->v_envases = t_vect(N, 0);
-    // y->n_envases_optimista = empaq_optimista_realista(E, y, vol);
-    y->n_envases_optimista = empaq_optimista_sencillo(E, vol);
+    // y->n_envases_optimista = empaq_optimista_elaborada(E, y, vol);
+    y->n_envases_optimista = empaq_optimista_sencilla(E, vol);
     
     bool encontrada = false;
-    int optimo = empaq_optimista_sencillo(E, vol);
+    int optimo = empaq_optimista_sencilla(E, vol);
 
-    explf++;
     pq.push(y);
-    int n_envases_mejor = empaq_pesimista_voraz(E, y, vol);
+    int n_envases_mejor = empaq_pesimista_elaborada(E, y, vol);
+                
+    utime_t t0, t1;
 
-    while (!pq.empty() && !encontrada &&  pq.top()->n_envases_optimista <= n_envases_mejor) {
+    // n_envases_optimista <= n_envases_mejor: <= en vez de <: si n_envases mejor = numero de envases óptimo, es imposible que n_envases_optimista sea menor
+    while (!pq.empty() && !encontrada &&  pq.top()->n_envases_optimista <= n_envases_mejor) { 
         y = pq.top();
         pq.pop();
 
         // para los hijos del nodo y, el objeto se puede meter en el envase i
-        for (int i = 0; !encontrada && i <= y->n_envases_real; i++) {  // y->n_envases_real + 1 >= i >= 0
-            if (vol[y->k] + y->v_envases[i] <= E) {          // si cabe en el envase abierto i
+        for (int i = 0; !encontrada && i <= y->n_envases_real; i++) {  // y->n_envases_real >= i >= 0 : i puede ser = a y->n_envases_real para contemplar el caso en el que se abre un envase nuevo
+            if (vol[y->k] + y->v_envases[i] <= E) {          // es factible si cabe en el envase i
+                exp_factibles++;
+
+
+                t0 = get_time();    // Mido el tiempo que tarda en generarse el nodo
                 x = new Nodo;
                 x->k = y->k + 1;
                 x->sol = y->sol;
@@ -174,16 +194,18 @@ Nodo* envase(const int E, const t_vect &vol, int &explf, int &explp) {
                 x->v_envases = y->v_envases;
                 x->v_envases[i] += vol[y->k];
                 x->n_envases_real = y->n_envases_real;
-                x->n_envases_optimista = empaq_pesimista_voraz(E, x, vol);
+                x->n_envases_optimista = empaq_pesimista_elaborada(E, x, vol);
                 // x->n_envases_optimista = y->n_envases_optimista;
-                explf++;
                 if(i == y->n_envases_real)
                     x->n_envases_real++;
-            } else {
+                t1 = get_time();
+                t += (t1 - t0)/1000.0L;
+            } else {    // si no es factible cabe continuamos: no queremos generar el nodo x si no puede llegar a ser solucion
                 continue;
             }
+            t0 = get_time(); // tambien mido lo que tarda en ejecutar este if else
             if (x->k == N){     // es-solucion
-                if(x->n_envases_real <= n_envases_mejor) {
+                if(x->n_envases_real <= n_envases_mejor) { //<= en vez de <: si n_envases mejor = numero de envases óptimo, es imposible que n_envases_real sea menor
                     n_envases_mejor = x->n_envases_real;
                     sol_mejor = x;
                     encontrada = x->n_envases_real == optimo;
@@ -192,12 +214,14 @@ Nodo* envase(const int E, const t_vect &vol, int &explf, int &explp) {
                 if(x->n_envases_optimista <= n_envases_mejor) {  // merece la pena expandirlo
                     explp++;
                     pq.push(x);
-                    int pesimista = empaq_pesimista_voraz(E, y, vol);
+                    int pesimista = empaq_pesimista_elaborada(E, y, vol);
                     n_envases_mejor = min(pesimista, n_envases_mejor);
                 } else {                                        
                     delete x;
                 }
             }
+            t1 = get_time();
+            t += (t1 - t0)/1000.0L;
         }
         delete y;
     }
@@ -205,13 +229,14 @@ Nodo* envase(const int E, const t_vect &vol, int &explf, int &explp) {
 }
 
 void printsol(const int E, Nodo* &nod, const t_vect &vol) {
+    t_vect env = nod->v_envases;
+    env.resize(nod->n_envases_real);
     cout << "distribucion de " << N << " objetos en envases de capacidad " << E << endl;
-    cout << "volumenes:\t\t";
-    printv(vol);
-    cout << nod->n_envases_real << " envases utilizados:\t";
-    printv(nod->sol);
-    cout << "estado de los envases: ";
-    printv(nod->v_envases);
+    cout << nod->n_envases_real << " envases utilizados:" << endl;
+
+    cout << "volumenes de los objetos:\t\t";      printv(vol);
+    cout << "envases asignados a los objetos:\t"; printv(nod->sol);
+    cout << "estado de los envases:\t\t\t";       printv(env);
 }
 
 // lee fichero input_n=16.txt, input_n=32.txt, o input_n=64.txt de la carpeta inputs
@@ -262,13 +287,17 @@ int main() {
     const int E = 10;
     t_vect vol = readinputfile();
      
-    int explfactibles = 0, explpodados = 0;
+    int exp_factibles = 0, exp_podados = 0; // almacena los nodos explorados
+    double t = 0;                           // almacena el tiempo de ejecución transcurrido en explorar los nodos
 
-    Nodo* solnod = envase(E, vol, explfactibles, explpodados);
+    Nodo* solnod = envase(E, vol, exp_factibles, exp_podados, t);
 
     printsol(E, solnod, vol);
-    cout << "nodos explorados (factibles): " << explfactibles << endl;
-    cout << "nodos explorados (no podados): " << explpodados << endl;
+    cout << "nodos explorados (factibles): " << exp_factibles << endl;
+    cout << "nodos explorados (no podados): " << exp_podados << endl;
+
+    cout << "tiempo transcurrido en explorar " << exp_factibles << " nodos: " << t << " ms." << endl;
+    cout << "promedio del tiempo transcurrido en explorar un nodo: " << t/exp_factibles << endl;
    
     return 0;
 }
