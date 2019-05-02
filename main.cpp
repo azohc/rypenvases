@@ -77,8 +77,8 @@ struct Nodo {   // estructura Nodo
     int k;                      // profundidad en el arbol
     int n_envases_real;         // la cantidad de envases utilizados en el nodo
     int n_envases_optimista;    // cota inferior de n_envases_real para la configuracion de envases
-    t_vect v_envases;          // volumenes asociados a los envases [0, n)
-    t_vect sol;                // envases asociados a los objetos [0, n)
+    t_vect v_envases;           // volumenes asociados a los envases [0, n)
+    t_vect sol;                 // envases asociados a los objetos [0, n)
 }; 
 struct Comparacion_Nodos {      
     bool operator()(const Nodo* l, const Nodo* r) const {   // comparacion en funcion del n_envases_optimista
@@ -104,7 +104,8 @@ int empaq_pesimista_sencilla(Nodo* &nod) {
     return N;
 }
 
-/* cota superior mas elaborada: 
+/* 
+cota superior mas elaborada: 
 calcula los envases necesarios de forma voraz para los objetos restantes
 cada objeto se coloca en el primer envase que tenga sitio para el
 */
@@ -134,8 +135,10 @@ int empaq_pesimista_elaborada(const int E, Nodo* n, const t_vect vol) {
     return abiertos;
 }
 
-/* cota inferior sencilla 
-da lugar a la solución óptima: volumen total de los objetos dividido por la capacidad de un envase
+/* 
+cota inferior sencilla 
+da lugar a la solución óptima: trata a los objetos como fraccionables 
+halla el volumen total de los objetos dividido por la capacidad de un envase
 */
 int empaq_optimista_sencilla(const int E, const t_vect &vol) {
     float retval = 0.0;
@@ -147,9 +150,13 @@ int empaq_optimista_sencilla(const int E, const t_vect &vol) {
     return ceil(retval);
 }
 
-// cota inferior mas elaborada: calcula el numero de envases contemplando los objetos restantes
-// y los envases utilizados. considera que los objetos son NO fraccionables
+/* 
+cota inferior mas elaborada: calcula el numero de envases contemplando los objetos restantes
+y los envases utilizados. considera que los objetos son NO fraccionables
+*/
 int empaq_optimista_elaborada(const int E, Nodo* n, const t_vect &vol) {
+
+    
     return 0;
 }
 
