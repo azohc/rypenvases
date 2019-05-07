@@ -163,13 +163,31 @@ cota inferior mas elaborada: estima el numero de envases contemplando los objeto
 y los envases utilizados. trata a los objetos como fraccionables
 */
 int empaq_optimista_elaborada(Nodo* n, const t_vect &vol) {
-    float retval = 0.0;
     
-    for (int i = 0; i < N; i++)
-        retval += vol[i];
-    retval = retval/E;
+    // calcular capacidad restante en los envases que ya han sido utilizados
+    int capacidad_env_abiertos = 0;
 
-    return ceil(retval);
+    for(int i = 0; i < n->n_envases_real; i++) {
+        capacidad_env_abiertos += E - n->v_envases[i];  // capacidad = E - volumen
+    }
+    
+    // calcular volumen total de los objetos que aun no han sido envasados
+    float vol_envases_restantes = 0.0;    
+    for (int i = n->k; i < N; i++)
+        vol_envases_restantes += vol[i];
+
+    // se utiliza la capacidad de los envases abiertos.
+    vol_envases_restantes -= capacidad_env_abiertos;
+
+    // si despues de llenar los envases abiertos con volumen de objetos restantes
+    if(vol_envases_restantes <= 0) // queda un volumen de objetos restantes <= 0
+        return n->n_envases_real; // no hace falta utilizar mas envases
+
+    // en caso de que siga habiendo un volumen de objetos restantes mayor que cero
+    float estimacion = vol_envases_restantes/E; // se envasan con trato fraccionable
+
+    // se devuelve el numero de envases actual + estimacion
+    return n->n_envases_real + ceil(estimacion); 
 }
 
 
