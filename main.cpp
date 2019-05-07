@@ -72,7 +72,7 @@ static utime_t get_time ()
 
 using t_vect = vector<int>;
 int N;  // numero de objetos a envasar
-int E = 11;  // volumen de los envases
+int E = 9;  // volumen de los envases
 
 // tipos de cotas
 const int SENCILLAS = 1; 
@@ -163,33 +163,13 @@ cota inferior mas elaborada: estima el numero de envases contemplando los objeto
 y los envases utilizados. trata a los objetos como fraccionables
 */
 int empaq_optimista_elaborada(Nodo* n, const t_vect &vol) {
+    float retval = 0.0;
     
-    // calcular capacidad restante en los envases que ya han sido utilizados
-    int capacidad_env_abiertos = 0;
-    if(!n->v_envases.empty()) {
-        for(t_vect::const_iterator it = n->v_envases.cbegin(); it != n->v_envases.cend(); it++) {
-            capacidad_env_abiertos += E - *it;  // capacidad = E - volumen
-        }
-    }
+    for (int i = 0; i < N; i++)
+        retval += vol[i];
+    retval = retval/E;
 
-    // calcular volumen total de los objetos que aun no han sido envasados
-    float vol_envases_restantes = 0.0;    
-    for (int i = n->k; i < N; i++)
-        vol_envases_restantes += vol[i];
-
-    // se utiliza la capacidad de los envases abiertos.
-    vol_envases_restantes -= capacidad_env_abiertos;
-
-    // si despues de llenar los envases abiertos con volumen de objetos restantes
-    if(vol_envases_restantes <= 0) // queda un volumen de objetos restantes <= 0
-        return n->n_envases_real; // no hace falta utilizar mas envases
-
-    // en caso de que siga habiendo un volumen de objetos restantes mayor que cero
-    float estimacion = vol_envases_restantes/E; // se envasan con trato fraccionable
-
-    // se devuelve el numero de envases actual + estimacion
-    return n->n_envases_real + ceil(estimacion); 
-    
+    return ceil(retval);
 }
 
 
@@ -204,7 +184,7 @@ Nodo* envase(int cotas, const t_vect &vol, int &explorados, double &t) {
     y->sol = t_vect(N, -1);
     y->v_envases = t_vect(N, 0);
     y->n_envases_optimista = (cotas == SENCILLAS) ? empaq_optimista_sencilla(y) : empaq_optimista_elaborada(y, vol);
-    
+
     pq.push(y);
     int optimo = sol_optima(vol);
 
@@ -216,11 +196,12 @@ Nodo* envase(int cotas, const t_vect &vol, int &explorados, double &t) {
     while (!pq.empty() &&  pq.top()->n_envases_optimista <= n_envases_mejor) { 
         y = pq.top();
         pq.pop();
+        explorados++;
 
         // para los hijos del nodo y, el objeto se puede meter en el envase i
         for (int i = 0; i <= y->n_envases_real; i++) {  // y->n_envases_real >= i >= 0 : i puede ser = a y->n_envases_real para contemplar el caso en el que se abre un envase nuevo
             if (vol[y->k] + y->v_envases[i] <= E) {          // es factible si cabe en el envase i
-                
+
                 t0 = get_time();    // Mido el tiempo que tarda en generarse el nodo
                 x = new Nodo;
                 x->k = y->k + 1;
@@ -229,10 +210,11 @@ Nodo* envase(int cotas, const t_vect &vol, int &explorados, double &t) {
                 x->v_envases = y->v_envases;
                 x->v_envases[i] += vol[y->k];
                 x->n_envases_real = y->n_envases_real;
-                x->n_envases_optimista = (cotas == SENCILLAS) ? empaq_optimista_sencilla(y) : empaq_optimista_elaborada(y, vol);
-
                 if(i == y->n_envases_real)
                     x->n_envases_real++;
+
+                x->n_envases_optimista = (cotas == SENCILLAS) ? empaq_optimista_sencilla(x) : empaq_optimista_elaborada(x, vol);
+                
                 t1 = get_time();
                 t += (t1 - t0)/1000.0L;
             } else {    // si no es factible cabe continuamos: no queremos generar el nodo x si no puede llegar a ser solucion
@@ -248,7 +230,6 @@ Nodo* envase(int cotas, const t_vect &vol, int &explorados, double &t) {
                 }
             } else {                        // !es-solucion
                 if(x->n_envases_optimista <= n_envases_mejor) {  // merece la pena expandirlo
-                    explorados++;
                     pq.push(x);
                     int pesimista = (cotas == SENCILLAS) ? empaq_pesimista_sencilla(y) : empaq_pesimista_elaborada(y, vol);
                     n_envases_mejor = min(pesimista, n_envases_mejor);
@@ -270,30 +251,30 @@ void printsol(Nodo* &nod, const t_vect &vol) {
     cout << "distribucion de " << N << " objetos en envases de capacidad " << E << endl;
     cout << nod->n_envases_real << " envases utilizados:" << endl;
 
-    cout << "volumenes de los objetos:\t\t";      printv(vol);
-    cout << "envases asignados a los objetos:\t"; printv(nod->sol);
-    cout << "estado de los envases:\t\t\t";       printv(env);
+    cout << "volumenes de los objetos:\t";      printv(vol);
+    cout << "envases asignados a objetos:\t";    printv(nod->sol);
+    cout << "estado de los envases:\t\t";       printv(env);
 }
 
-// lee fichero input_n=16.txt, input_n=32.txt, o input_n=48.txt de la carpeta inputs
+// lee fichero input_n=15.txt, input_n=35.txt, o input_n=35.txt de la carpeta inputs
 t_vect readinputfile() {
     t_vect v;
     ifstream f;
     int n = -1;
-    cout << "1: n = 16. 2: n = 32. 3: n = 48." << endl << "elige un fichero (del 1 al 3): ";
+    cout << "1: n = 15. 2: n = 25. 3: n = 35." << endl << "elige un fichero (del 1 al 3): ";
     string path;
     while(n < 1 || n > 3) {
         cin >> n;
         
         if(n == 1) {
-            path = "inputs/input_n=16.txt";
-            N = 16;
+            path = "inputs/input_n=15.txt";
+            N = 15;
         } else if (n == 2) {
-            path = "inputs/input_n=32.txt";
-            N = 32;
+            path = "inputs/input_n=25.txt";
+            N = 25;
         } else if (n == 3) {
-            path = "inputs/input_n=48.txt";
-            N = 48;
+            path = "inputs/input_n=35.txt";
+            N = 35;
         } else {
             cout << "error. elige un numero del 1 al 3: ";
         }
@@ -327,10 +308,11 @@ int main() {
 
     int cotas = -1;
     while (cotas != 1 && cotas != 2) {
-        cout << "podas sencillas (1) o podas elaboradas (2)?" << endl;
-        cout << "eleccion: ";
+        cout << "1: cotas sencillas. 2: cotas elaboradas" << endl;
+        cout << "elige las cotas (1 o 2): ";
         cin >> cotas;
     }
+    (cotas == SENCILLAS) ? cout << "usando cotas sencillas...": cout << "usando cotas elaboradas..."; cout << endl << endl; 
 
     Nodo* solnod = envase(cotas, vol, explorados, t);
 
