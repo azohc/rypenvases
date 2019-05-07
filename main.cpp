@@ -50,6 +50,8 @@ Normas para la presentacion de la practica
 #include <math.h>       //CEIL
 #include <sys/time.h>   //MEDIDAS DE TIEMPO
 
+#include <stdlib.h>     /* atoi */
+
 using std::vector;
 using std::priority_queue;
 using std::iterator;
@@ -136,14 +138,14 @@ int empaq_pesimista_elaborada(Nodo* n, const t_vect vol) {
             v_envases_aux[0] += vol[i];    // y se mete al primero
         } else {                                        // si hay envases abiertos
             int j;
-            for (j = 0; j < abiertos; j++) {    // miramos si cabe en alguno
+            for (j = abiertos - 1; j >= 0; j--) {    // miramos si cabe en alguno
                 if (vol[i] + v_envases_aux[j] <= E) {   // si cabe en un envase abierto
                     v_envases_aux[j] += vol[i];             // se mete mete en primero que tenga sitio
                     break;
                 }
             }
-            if (j == abiertos) {   // si no cupo en un envase abierto
-                v_envases_aux[j] = vol[i]; // se mete a uno nuevo
+            if (j == -1) {   // si no cupo en un envase abierto
+                v_envases_aux[abiertos] = vol[i]; // se mete a uno nuevo
                 abiertos++;
             }
         }
@@ -163,7 +165,7 @@ cota inferior mas elaborada: estima el numero de envases contemplando los objeto
 y los envases utilizados. trata a los objetos como fraccionables
 */
 int empaq_optimista_elaborada(Nodo* n, const t_vect &vol) {
-    
+
     // calcular capacidad restante en los envases que ya han sido utilizados
     int capacidad_env_abiertos = 0;
 
@@ -275,26 +277,44 @@ void printsol(Nodo* &nod, const t_vect &vol) {
 }
 
 // lee fichero input_n=15.txt, input_n=35.txt, o input_n=35.txt de la carpeta inputs
-t_vect readinputfile() {
+t_vect readinputfile(int arg) {
     t_vect v;
     ifstream f;
     int n = -1;
-    cout << "1: n = 15. 2: n = 25. 3: n = 35." << endl << "elige un fichero (del 1 al 3): ";
     string path;
-    while(n < 1 || n > 3) {
-        cin >> n;
-        
-        if(n == 1) {
+
+    if(!arg){
+        cout << "1: n = 15. 2: n = 25. 3: n = 35." << endl << "elige un fichero (del 1 al 3): ";
+        while(n < 1 || n > 3) {
+            cin >> n;
+            
+            if(n == 1) {
+                path = "inputs/input_n=15.txt";
+                N = 15;
+            } else if (n == 2) {
+                path = "inputs/input_n=25.txt";
+                N = 25;
+            } else if (n == 3) {
+                path = "inputs/input_n=35.txt";
+                N = 35;
+            } else {
+                cout << "error. elige un numero del 1 al 3: ";
+            }
+        }
+    }
+    else {
+        if(arg == 15) {
             path = "inputs/input_n=15.txt";
             N = 15;
-        } else if (n == 2) {
+        } else if (arg == 25) {
             path = "inputs/input_n=25.txt";
             N = 25;
-        } else if (n == 3) {
+        } else if (arg == 35) {
             path = "inputs/input_n=35.txt";
             N = 35;
         } else {
-            cout << "error. elige un numero del 1 al 3: ";
+            cout << "error. no existe el fichero de entrada con N=" << arg << endl;
+            exit;
         }
     }
     f.open(path);
@@ -317,14 +337,18 @@ t_vect readinputfile() {
     return v;
 }
 
-int main() {
-    
-    t_vect vol = readinputfile();
+int main(int argc, char* argv[]) {
+    t_vect vol;
+
+    if(argc == 2) // se puede pasar N = 15, 25, 35
+        vol = readinputfile((atoi(argv[1])));
+    else
+        vol = readinputfile(0);
      
     int explorados = 0; // almacena los nodos explorados
     double t = 0;       // almacena el tiempo de ejecución transcurrido en explorar los nodos
 
-    int cotas = -1;
+    int cotas = 2;
     while (cotas != 1 && cotas != 2) {
         cout << "1: cotas sencillas. 2: cotas elaboradas" << endl;
         cout << "elige las cotas (1 o 2): ";
