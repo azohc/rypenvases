@@ -1,0 +1,115 @@
+\documentclass[12pt , a4paper]{article}
+\usepackage[spanish]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{tocloft}
+\usepackage[export]{adjustbox}
+\usepackage{graphicx}
+\graphicspath{ {./images/} }
+\setcounter{tocdepth}{1} % Show sections
+\renewcommand\cftsecdotsep{\cftdot}
+\usepackage{tabto,ulem,booktabs}
+\usepackage{wrapfig}
+\usepackage{textcomp}
+\usepackage{tabu}
+\usepackage{makecell}
+\renewcommand{\arraystretch}{2}
+\def\dotsign{\xleaders\hbox to .2em{\d{}}\hfill\d{}}
+\newcommand{\q}[1]{``#1''}
+
+\title{MAR\\Práctica segundo cuatrimestre\\Problema de los envases}
+\author{Juan Chozas Sumbera}
+
+
+\begin{document}
+	
+\maketitle
+\begin{center}
+	\includegraphics[width=\textwidth]{logo_UCM.jpg}
+\end{center}
+
+\newpage
+
+\begin{table}[h!]
+	\begin{tabular}{||c || c c c||} 
+		\hline
+		Tipo de acotamiento 									& Nodos explorados		& Tiempo total 		& Tiempo/nodo 	\\ [0.5ex] 
+		\hline\hline
+		Exclusivamente por factibilidad 						& 7774 nodos			& 5,89 ms 			& 0,0007576 ms 
+		\\ \hline
+		\makecell{Cotas optimistas/pesimistas \\ sencillas}		& 4835 nodos			& 7,09 ms			& 0,0014664 ms 	
+		\\ 	\hline
+		\makecell{Cotas optimistas/pesimistas \\ elaboradas} 	& 4164 nodos			& 9,38 ms 			& 0,0022526 ms 
+		\\ 	\hline
+	\end{tabular}
+	\caption{Medias para \textit{n=12} objetos}
+	\label{table:1}
+\end{table}
+
+\begin{table}[h!]
+	\centering
+	\begin{tabular}{||c || c c c||} 
+		\hline
+		Tipo de acotamiento 									& Nodos explorados		& Tiempo total 		& Tiempo/nodo 	\\ [0.5ex] 
+		\hline\hline
+		Exclusivamente por factibilidad 						& 34126 nodos			& 44,82 ms 			& 0,0013133 ms
+		\\ \hline
+		\makecell{Cotas optimistas/pesimistas \\ sencillas}		& 12286 nodos			& 18,63 ms			& 0,0015163 ms 	
+		\\ 	\hline
+		\makecell{Cotas optimistas/pesimistas \\ elaboradas} 	& 11290	nodos			& 25,99 ms			& 0,0023020 ms 
+		\\ 	\hline
+	\end{tabular}
+	\caption{Medias para \textit{n=18} objetos}
+	\label{table:1}
+\end{table}
+
+
+\begin{table}[h!]
+	\centering
+	\begin{tabular}{||c || c c c||} 
+		\hline
+		Tipo de acotamiento 									& Nodos explorados		& Tiempo total 		& Tiempo/nodo 	\\ [0.5ex] 
+		\hline\hline
+		Exclusivamente por factibilidad 						& 901835 nodos			& - 				& -
+		\\ \hline
+		\makecell{Cotas optimistas/pesimistas \\ sencillas}		& 29471 nodos			& 45,62 ms 			& 0,0015479 ms
+		\\ 	\hline
+		\makecell{Cotas optimistas/pesimistas \\ elaboradas} 	& 26672 nodos			& 73,87 ms			& 0,0027695 ms 	
+		\\ 	\hline
+	\end{tabular}
+	\caption{Medias para \textit{n=24} objetos}
+	\label{table:1}
+\end{table}
+	
+Aquí tenemos los resultados obtenidos del programa que resuelve el problema de los envases. He utilizado tres valores distintos para el número de objetos a envasar, y los datos que aparecen en cada casilla son los valores medios de 10 ejecuciones. Las distintas pruebas se han ejecutado en un entorno similar con un reducido número de procesos corriendo de fondo.
+
+\newpage
+\section{Análisis de los resultados}
+Cabe mencionar que ningún resultado de \textit{Nodos explorados} ha variado para las distintas ejecuciones, salvo uno del juego de datos de 24 objetos; cuando no se usa más poda que la de factibilidad, el programa termina lanzando la excepción \textit{std::bad\_alloc}. El número de nodos para este caso se imprime al atrapar la excepción, y está mostrado el número medio de nodos explorados a lo largo de 10 ejecuciones. La combinación entre la falta de acotamiento en la búsqueda de la solución y el elevado número de datos hace necesaria más memoria, que escasea por estar tratando un problema cuyo árbol de decisión plantea un número de nodos de orden factorial. Para cada nodo se puede generar 1 hijo más que el número de envases abiertos; el objeto que se esté contemplando se puede colocar en un envase abierto o se le puede adjudicar un envase nuevo.
+\\
+
+Indistintamente de la cantidad de objetos, se puede apreciar un declive en los nodos explorados proporcional al creciente acotamiento en la búsqueda de la solución. Sin ninguna cota del esquema de ramificación y poda, las soluciones se hallan tras explorar alrededor del doble (para \textit{n=12}; alrededor del triple con \textit{n=18}) de los nodos explorados en una búsqueda que utiliza cotas sencillas. Entre las cotas sencillas y elaboradas también es observable un descenso en el numero de nodos explorados. Este descenso en el numero de nodos quiere decir que cada vez se están podando más nodos; partiendo de que en la poda que solo usa la prueba de factibilidad no se están haciendo estimaciones sobre la posible solución alcanzable desde un nodo, este tipo de acotamiento es el más ligero, pues se explora todo nodo que sea factible en un recorrido en anchura por el arbol. 
+
+Las cotas del esquema de ramificación y poda reducen el numero de nodos explorados al estar utilizando estimaciones para la mejor solución en caso optimista y la peor solución en caso pesimista. Estas estimaciones podan menos, en el caso de las cotas sencillas, porque no tienen en cuenta la solución parcial del nodo. Siempre devuelven un valor que ya está calculado; es una poda, pero aprovechando los datos del nodo se puede podar más. Las cotas elaboradas se calculan más costosamente, pero utilizan varios datos del nodo para estimar más precisamente y podar más nodos que el resto de configuraciones. Esto es así, las cotas del esquema de ramificación y poda sencillas tienen más nodos explorados que las cotas elaboradas. Además, la diferencia de nodos explorados entre las pruebas con acotamiento usando factibilidad y las pruebas con cotas sencillas es más grande que la diferencia de nodos al pasar de cotas sencillas a cotas elaboradas.
+\\
+
+El tiempo medio por nodo explorado sube conforme incrementan las estrategias de acotamiento. Sin cotas del esquema de ramificación y poda, el tiempo medio por nodo es más bajo que el tiempo medio por nodo cuando se utilizan cotas optimistas y pesimistas. Esto es debido a la necesidad de hacer más operaciones por nodo para calcular las cotas optimistas y pesimistas, mientras tanto, no hay que calcular estimaciones al podar con la prueba de factibilidad; se generan nodos y solo se añaden a la cola los nodos factibles. 
+
+Lo más normal es que el tiempo medio por nodo explorado sea mayor con las cotas elaboradas frente a las cotas sencillas, y que sin más pruebas que la de factibilidad se tarde menos en explorar un nodo frente a un programa con cotas optimistas/pesimistas. Esto es claramente apreciable para todos los casos de prueba, a pesar de que para \textit{n=24} objetos no haya tiempos (no he proporcionado estos datos por que no se llega a una solución).
+\\
+
+Para el tiempo total se puede decir que hay un comportamiento inesperado; el tiempo transcurrido en encontrar una solución incrementa conforme se utilizan técnicas de acotamiento más complejas, pero no tendría porque ser así. Si la poda es efectiva y se reducen los nodos explorados con los distintos tipos de acotamiento, lo normal sería que el tiempo total también baje; por estar explorándose menos nodos se debería llegar más rápidamente una solución. 
+
+
+Con \textit{n=18} objetos, el tiempo total usando la prueba de factibilidad es más del doble de grande que el de las cotas sencillas. En esta comparación, el número de nodos con cotas sencillas es el 36\% del número de nodos sin cotas optimistas/pesimistas, y el tiempo medio por nodo no incrementa mucho. Con estas condiciones, es normal que el tiempo total baje, pues no se está tardando mucho más en explorar nodos con cotas sencillas, pero gracias a estas cotas se están podando más de la mitad de los nodos que habría si no hubieran cotas del esquema de ramificación y poda.
+
+\newpage
+\section{Conclusiones}
+
+El compromiso entre los costes en memoria y en tiempo es lo que dicta el resultado final de las pruebas; he podido observar distintos comportamientos para los casos de prueba que he planteado, y he buscado las razones que explican estos comportamientos.
+
+Iba a decir que en este problema no era viable aplicar las cotas características del esquema de ramificación y poda; los tiempos totales incrementan gracias a la necesidad de hacer más operaciones por cada nodo cuando se utiliza este esquema, a pesar de que se estén explorando menos nodos. Es decepcionante que con esta manera de acotamiento se tarde más en encontrar una solución que con un esquema que solo poda los nodos no factibles; podría haberse visto un declive en el tiempo total si hubiesen sido más eficientes las maneras de estimar las cotas. No obstante, si no fuera por las cotas del esquema de ramificación y poda, no se estarían podando grandes números de nodos: en muchos casos las soluciones no se llegarían a hallar por el hecho de tener una memoria limitada. 
+
+Si tuviera que elegir una de las estrategias de acotamiento que he implementado, probablemente me quedaría con las cotas sencillas. Podan un basto numero de nodos que se explorarían si se podase exclusivamente por factibilidad, y en comparación con las cotas elaboradas no hay una diferencia tan grande cuando se trata de nodos explorados. Como el tiempo medio por nodo incrementa bastante relativo a las cotas sencillas y no se podan muchos más nodos con las cotas elaboradas, acaban hallándose más lentamente las soluciones cuando se usan las cotas elaboradas.
+
+\end{document}
+
