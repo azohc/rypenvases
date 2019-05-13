@@ -1,7 +1,7 @@
 #! /bin/bash
 
 #script para compilar y ejecutar el código
-n=18
+n=15
 array=()
 more=1
 rm "inputs/input_n=$n.txt"
@@ -10,7 +10,7 @@ while true
 do
     while [[ more -eq 1 ]]
     do
-        for j in {1..18}
+        for j in {1..15}
         do
             echo -n "$(( ( RANDOM % 10 ) + 1 )) " >> "inputs/input_n=$n.txt"
         done
@@ -27,23 +27,21 @@ do
             more=0        # dont gen more
             echo "$rng added to list" 
             # print list
-            for item in "${array[@]}"; do  
-               echo $item
-            done
+            # for item in "${array[@]}"; do  
+            #    echo $item
+            # done
         fi
     done
 
     g++ -g -std=c++0x main.cpp -o main 
-    ./main 18 1
+    ./main 15 1
     res1=$?
-    ./main 18 2
+    ./main 15 2
     res2=$?
 
-    if [ $res1 -ne $res2 ]; then
+    if [[ $res1 -ne $res2 && $res1 -ge 8000 ]]; then
         exit
     fi
     more=1
     rm "inputs/input_n=$n.txt"
 done
-# g++ -g -std=c++0x main.cpp -o main && ./main
-# rm main

@@ -49,6 +49,7 @@ Normas para la presentacion de la practica
 
 using std::vector;
 using std::priority_queue;
+using std::queue;
 using std::iterator;
 using std::min;
 using std::cout;
@@ -72,6 +73,7 @@ int N;  // numero de objetos a envasar
 int E = 10;  // volumen de los envases
 
 // tipos de cotas
+const int SIN_COTAS = 0;
 const int SENCILLAS = 1; 
 const int ELABORADAS = 2;
 
@@ -149,7 +151,7 @@ int empaq_pesimista_elaborada(Nodo* n, const t_vect vol) {
 }
 
 /* 
-cota inferior sencilla 
+cota inferior sencilla: en el mejor de los casos, no se utilizan mas envases
 */
 int empaq_optimista_sencilla(Nodo* n) {
     return n->n_envases_real;
@@ -252,6 +254,65 @@ Nodo* envase(int cotas, const t_vect &vol, int &explorados) {
     return sol_mejor;
 }
 
+Nodo* envase_sin_cotas(int cotas, const t_vect &vol, int &explorados) {
+    
+    Nodo* x;
+    Nodo* y = new Nodo;    
+    queue<Nodo*> q;
+    
+    Nodo* sol_mejor = new Nodo;
+
+    y->k = 0;
+    y->n_envases_real = 0;
+    y->sol = t_vect(N, -1);
+    y->v_envases = t_vect(N, 0);
+    
+
+    q.push(y);
+    int optimo = sol_optima(vol); // solucion optima: sirve para terminar de buscar en caso de encontrarse
+
+    int n_envases_mejor = __INT_MAX__; // solucion mejor es +infinito para empezar
+                
+    // n_envases_optimista <= n_envases_mejor: <= en vez de <: si n_envases mejor = numero de envases óptimo, es imposible que n_envases_optimista sea menor
+    while (!q.empty()) { 
+        y = q.front();
+        q.pop();
+        explorados++;
+
+        // para los hijos del nodo y, el objeto se puede meter en el envase i
+        for (int i = 0; i <= y->n_envases_real; i++) {  // y->n_envases_real >= i >= 0 : i puede ser = a y->n_envases_real para contemplar el caso en el que se abre un envase nuevo
+            if (vol[y->k] + y->v_envases[i] <= E) {          // es factible si cabe en el envase i
+
+                x = new Nodo;
+                x->k = y->k + 1;
+                x->sol = y->sol;
+                x->sol[y->k] = i;
+                x->v_envases = y->v_envases;
+                x->v_envases[i] += vol[y->k];
+                x->n_envases_real = y->n_envases_real;
+                if(i == y->n_envases_real)
+                    x->n_envases_real++;
+
+
+            } else {    // si no es factible cabe continuamos: no queremos generar el nodo x si no puede llegar a ser solucion
+                continue;
+            }
+            if (x->k == N){     // es-solucion
+                if(x->n_envases_real <= n_envases_mejor) { //<= en vez de <: si n_envases mejor = numero de envases óptimo, es imposible que n_envases_real sea menor
+                    n_envases_mejor = x->n_envases_real;
+                    sol_mejor = x;
+                    if(x->n_envases_real == optimo)
+                        return sol_mejor;
+                }
+            } else {                        // !es-solucion
+                q.push(x);
+            }
+        }
+        delete y;
+    }
+    return sol_mejor;
+}
+
 void printsol(Nodo* &nod, const t_vect &vol) {
     t_vect env = nod->v_envases;
     env.resize(nod->n_envases_real);
@@ -263,7 +324,7 @@ void printsol(Nodo* &nod, const t_vect &vol) {
     cout << "\t" << "estado de los envases:\t\t";       printv(env);
 }
 
-// lee fichero input_n=12.txt, input_n=18.txt, o input_n=24.txt de la carpeta inputs
+// lee fichero de la carpeta inputs
 t_vect readinputfile(int arg) {
     t_vect v;
     ifstream f;
@@ -271,14 +332,14 @@ t_vect readinputfile(int arg) {
     string path;
 
     if(!arg){
-        cout << "1: n = 12. 2: n = 18. 3: n = 24." << endl << "elige un fichero (del 1 al 3): ";
+        cout << "1: n = 12. 2: n = 18. 3: n = 24" << endl << "elige un fichero (del 1 al 3): ";
         while(n < 1 || n > 3) {
             cin >> n;
             
             if(n == 1) {
                 path = "inputs/input_n=12.txt";
                 N = 12;
-            } else if (n == 2) {
+            }else if (n == 2) {
                 path = "inputs/input_n=18.txt";
                 N = 18;
             } else if (n == 3) {
@@ -323,12 +384,30 @@ t_vect readinputfile(int arg) {
 
     return v;
 }
+int eleccioncotas(int argc, char* argv[]) {
+    int cotas = argc > 2 ? atoi(argv[2]) : -1;  // si no hay parametros en argv, pedirlas por stdin
+    while (cotas != SENCILLAS && cotas != ELABORADAS && cotas != SIN_COTAS) {
+        cout << "0: sin cotas, 1: cotas sencillas, 2: cotas elaboradas" << endl;
+        cout << "elige las cotas (0, 1, o 2): ";
+        cin >> cotas;
+    }
+    if(cotas == SENCILLAS) {
+        cout << "usando cotas sencillas...";
+    } else if (cotas == ELABORADAS) {
+        cout << "usando cotas elaboradas...";
+    } else {
+        cout << "usando solamente la poda de factibilidad...";
+    }
+    cout << endl << endl;
+    
+    return cotas;
+}
 
 int main(int argc, char* argv[]) {
     t_vect vol;
 
     // se puede pasar N = 12, 18, 24 como primer argumento (argv[1])
-    // se puede pasar 1 (cotas sencillas) o 2 (cotas elaboradas) como segundo argumento (argv[2])
+    // se puede pasar 0 (sin cotas), 1 (cotas sencillas) o 2 (cotas elaboradas) como segundo argumento (argv[2])
     if(argc >= 2) 
         vol = readinputfile((atoi(argv[1])));
     else    // sin argumentos se utiliza entrada estandar para elegir N y tipo de cotas
@@ -336,23 +415,32 @@ int main(int argc, char* argv[]) {
      
     int explorados = 0; // almacena los nodos explorados
 
-    int cotas = argc > 2 ? atoi(argv[2]) : -1;
-    while (cotas != SENCILLAS && cotas != ELABORADAS) {
-        cout << "1: cotas sencillas. 2: cotas elaboradas" << endl;
-        cout << "elige las cotas (1 o 2): ";
-        cin >> cotas;
-    }
-    (cotas == SENCILLAS) ? cout << "usando cotas sencillas...": cout << "usando cotas elaboradas..."; cout << endl << endl; 
+    int cotas = eleccioncotas(argc, argv);
 
-    double t = 0;       // almacena el tiempo de ejecución transcurrido en explorar los nodos
+    double tcotas = 0, t = 0;       // almacena el tiempo de ejecución transcurrido en explorar los nodos
     utime_t t1, t0; 
+    Nodo* solnod;
 
-    t0 = get_time();
-    Nodo* solnod = envase(cotas, vol, explorados);
-    t1 = get_time();
+    // ejecucion del algoritmo en try-catch para poder imprimir el numero de nodos expandidos cuando salta una excepcion
+    try {
+        if(cotas == SENCILLAS || cotas == ELABORADAS) {
+            // con cotas
+            t0 = get_time();
+            solnod = envase(cotas, vol, explorados);
+            t1 = get_time();
+        } else {
+            // sin cotas
+            t0 = get_time();
+            solnod = envase_sin_cotas(cotas, vol, explorados);
+            t1 = get_time();
+        } 
+    } catch (const std::bad_alloc& e) {
+        cout << "nodos explorados antes de lanzarse la excepcion " << e.what() << ": " << explorados << endl;
+        return -1;
+    }
 
     t += (t1 - t0)/1000.0L;
-    
+
     printsol(solnod, vol);
     cout << endl;
     cout << "nodos explorados: " << explorados << endl;
@@ -361,5 +449,5 @@ int main(int argc, char* argv[]) {
     cout << "promedio del tiempo por nodo explorado: " << t/explorados << " ms." << endl 
         << "______________________________________________________________________________________" << endl;
 
-    return 0;
+    return explorados;
 }
